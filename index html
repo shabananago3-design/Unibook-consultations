@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University Consultation Booking Tool</title>
+    <!-- Bootstrap for Responsive Layout & Flexbox/Grid -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        /* Global Styles & Custom CSS */
+        * { box-sizing: border-box; }
+        body { background-color: #f8f9fa; }
+        .staff-card { transition: transform 0.2s; }
+        .staff-card:hover { transform: translateY(-5px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .section-padding { padding: 60px 0; }
+        #bookingMessage { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. HEADER / NAVIGATION -->
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">UniBook Consultations</a>
+            <ul class="navbar-nav ms-auto flex-row gap-3">
+                <li class="nav-item"><a class="nav-link" href="#directory">Directory</a></li>
+                <li class="nav-item"><a class="nav-link" href="#booking">Book Now</a></li>
+                <li class="nav-item"><a class="nav-link" href="#my-bookings">My Bookings</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- 2. SECTION: STAFF DIRECTORY (Search & Filter) -->
+    <section id="directory" class="section-padding container">
+        <h2 class="text-center mb-4">Find a Lecturer</h2>
+        
+        <div class="row mb-4 justify-content-center g-3">
+            <!-- Search Input -->
+            <div class="col-12 col-md-5">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search by name or department...">
+            </div>
+            <!-- Filter Dropdown -->
+            <div class="col-12 col-md-4">
+                <select id="departmentFilter" class="form-select">
+                    <option value="all">All Departments</option>
+                    <option value="Computer Science">Computer Science</option>
+                    <option value="Business">Business</option>
+                    <option value="Engineering">Engineering</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- This is where the JS will inject the 8+ staff cards -->
+        <div class="row g-4" id="staffContainer">
+            <!-- Cards will go here -->
+        </div>
+        <p id="emptyState" class="text-center text-muted mt-4" style="display: none;">No lecturers found matching your search.</p>
+    </section>
+
+    <!-- 3. SECTION: BOOKING FORM (Validated Form) -->
+    <section id="booking" class="section-padding bg-white">
+        <div class="container">
+            <h2 class="text-center mb-4">Book a Consultation</h2>
+            <div class="row justify-content-center">
+                <div class="col-12 col-md-8 col-lg-6">
+                    
+                    <!-- Feedback Message Area -->
+                    <div id="bookingMessage" class="alert" role="alert"></div>
+
+                    <form id="bookingForm" class="card p-4 shadow-sm">
+                        <div class="mb-3">
+                            <label for="studentName" class="form-label fw-bold">Your Name (Student)</label>
+                            <input type="text" class="form-control" id="studentName" required placeholder="e.g., Shaban Anago">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="lecturerSelect" class="form-label fw-bold">Select Lecturer</label>
+                            <!-- JS will populate this dropdown -->
+                            <select class="form-select" id="lecturerSelect" required>
+                                <option value="" disabled selected>Choose a lecturer...</option>
+                            </select>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="bookingDate" class="form-label fw-bold">Date</label>
+                                <input type="date" class="form-control" id="bookingDate" required>
+                            </div>
+                            <div class="col-md-6 mt-3 mt-md-0">
+                                <label for="bookingTime" class="form-label fw-bold">Time Slot</label>
+                                <select class="form-select" id="bookingTime" required>
+                                    <option value="" disabled selected>Select time...</option>
+                                    <option value="09:00 AM">09:00 AM</option>
+                                    <option value="11:00 AM">11:00 AM</option>
+                                    <option value="02:00 PM">02:00 PM</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 mt-2">Confirm Booking</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. SECTION: MY BOOKINGS (Status Summarisation) -->
+    <section id="my-bookings" class="section-padding container">
+        <h2 class="text-center mb-4">My Bookings</h2>
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8">
+                <ul class="list-group shadow-sm" id="bookingsList">
+                    <!-- Bookings will be injected here -->
+                    <li class="list-group-item text-center text-muted" id="noBookings">You have no active bookings.</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        // ==========================================
+        // DATA: 8 Sample Records (Requirement 6)
+        // ==========================================
+        const lecturers = [
+            { id: 1, name: "Dr. Amina Kato", dept: "Computer Science", office: "Block A, Room 12" },
+            { id: 2, name: "Prof. John Lomo", dept: "Computer Science", office: "Block A, Room 15" },
+            { id: 3, name: "Dr. Sarah Nabirye", dept: "Business", office: "Block B, Room 04" },
+            { id: 4, name: "Mr. David Okello", dept: "Business", office: "Block B, Room 08" },
+            { id: 5, name: "Dr. Grace Akello", dept: "Engineering", office: "Block C, Room 20" },
+            { id: 6, name: "Prof. Michael Smith", dept: "Engineering", office: "Block C, Room 22" },
+            { id: 7, name: "Ms. Esther Nsubuga", dept: "Computer Science", office: "Block A, Room 18" },
+            { id: 8, name: "Dr. Peter Wanyama", dept: "Business", office: "Block B, Room 10" }
+        ];
+
+        let myBookings = []; // Array to store user bookings
+
+        // ==========================================
+        // FUNCTION 1: Render & Filter Staff (Search)
+        // ==========================================
+        const staffContainer = document.getElementById('staffContainer');
+        const searchInput = document.getElementById('searchInput');
+        const deptFilter = document.getElementById('departmentFilter');
+        const emptyState = document.getElementById('emptyState');
+        const lecturerSelect = document.getElementById('lecturerSelect');
+
+        function displayStaff(staffArray) {
+            staffContainer.innerHTML = ""; // Clear current display
+            
+            if (staffArray.length === 0) {
+                emptyState.style.display = "block";
+                return;
+            }
+            emptyState.style.display = "none";
+
+            staffArray.forEach(staff => {
+                // Create card using Bootstrap Grid/Flexbox
+                const card = document.createElement('div');
+                card.className = "col-12 col-md-6 col-lg-3";
+                card.innerHTML = `
+                    <div class="card h-100 staff-card shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary">${staff.name}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">${staff.dept}</h6>
+                            <p class="card-text small">Office: ${staff.office}</p>
+                        </div>
+                    </div>
+                `;
+                staffContainer.appendChild(card);
+            });
+        }
+
+        // Filter Logic (Triggered by typing or dropdown change)
+        function filterStaff() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const selectedDept = deptFilter.value;
+
+            const filtered = lecturers.filter(staff => {
+                const matchesSearch = staff.name.toLowerCase().includes(searchTerm) || staff.dept.toLowerCase().includes(searchTerm);
+                const matchesDept = selectedDept === "all" || staff.dept === selectedDept;
+                return matchesSearch && matchesDept;
+            });
+
+            displayStaff(filtered);
+        }
+
+        // Event Listeners for Filtering
+        searchInput.addEventListener('input', filterStaff);
+        deptFilter.addEventListener('change', filterStaff);
+
+        // Populate the booking dropdown form
+        function populateDropdown() {
+            lecturers.forEach(staff => {
+                const option = document.createElement('option');
+                option.value = staff.name;
+                option.textContent = `${staff.name} (${staff.dept})`;
+                lecturerSelect.appendChild(option);
+            });
+        }
+
+        // ==========================================
+        // FUNCTION 2: Handle Booking & Validation
+        // ==========================================
+        const bookingForm = document.getElementById('bookingForm');
+        const bookingMessage = document.getElementById('bookingMessage');
+        const bookingsList = document.getElementById('bookingsList');
+        const noBookings = document.getElementById('noBookings');
+
+        function handleBooking(event) {
+            event.preventDefault(); // Stop page reload
+
+            // Get form values
+            const student = document.getElementById('studentName').value;
+            const lecturer = document.getElementById('lecturerSelect').value;
+            const date = document.getElementById('bookingDate').value;
+            const time = document.getElementById('bookingTime').value;
+
+            // Validation: Check for double booking (Calculation/Status)
+            const isDoubleBooked = myBookings.some(booking => 
+                booking.lecturer === lecturer && booking.date === date && booking.time === time
+            );
+
+            if (isDoubleBooked) {
+                // Error State
+                showMessage("This lecturer is already booked for that date and time. Please choose another slot.", "danger");
+                return;
+            }
+
+            // Success State: Create booking object
+            const newBooking = { student, lecturer, date, time };
+            myBookings.push(newBooking);
+
+            // Show success message
+            showMessage(`Success! Your consultation with ${lecturer} is booked for ${date} at ${time}.`, "success");
+            
+            // Reset form
+            bookingForm.reset();
+            
+            // Update Dashboard
+            updateBookingsList();
+        }
+
+        function showMessage(text, type) {
+            bookingMessage.textContent = text;
+            bookingMessage.className = `alert alert-${type}`;
+            bookingMessage.style.display = "block";
+            
+            // Hide message after 5 seconds
+            setTimeout(() => { bookingMessage.style.display = "none"; }, 5000);
+        }
+
+        bookingForm.addEventListener('submit', handleBooking);
+
+        // ==========================================
+        // FUNCTION 3: Update Dashboard/Summary
+        // ==========================================
+        function updateBookingsList() {
+            bookingsList.innerHTML = "";
+
+            if (myBookings.length === 0) {
+                bookingsList.innerHTML = '<li class="list-group-item text-center text-muted" id="noBookings">You have no active bookings.</li>';
+                return;
+            }
+
+            myBookings.forEach((booking, index) => {
+                const li = document.createElement('li');
+                li.className = "list-group-item d-flex justify-content-between align-items-center";
+                li.innerHTML = `
+                    <div>
+                        <strong>${booking.lecturer}</strong><br>
+                        <small class="text-muted">${booking.date} at ${booking.time}</small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" onclick="cancelBooking(${index})">Cancel</button>
+                `;
+                bookingsList.appendChild(li);
+            });
+        }
+
+        // A simple user action to cancel a booking
+        window.cancelBooking = function(index) {
+            myBookings.splice(index, 1);
+            updateBookingsList();
+            showMessage("Booking cancelled successfully.", "warning");
+        }
+
+        // ==========================================
+        // INITIALIZE APP
+        // ==========================================
+        displayStaff(lecturers);
+        populateDropdown();
+
+    </script>
+</body>
+</html>
